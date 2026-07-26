@@ -8,9 +8,10 @@
  * PKGS:end markers. Nothing else in the page is touched apart from the
  * "read from the NuGet manifests on <date>" line in the footer.
  *
- * Only structure is written out: the dependency edges and the count of
- * non-Tharga dependencies. Versions and download counts change constantly and
- * are fetched live by the page itself, so they are deliberately NOT baked in.
+ * Only structure is written out: the dependency edges, the count of non-Tharga
+ * dependencies, and the source repository. Versions and download counts change
+ * constantly and are fetched live by the page itself, so they are deliberately
+ * NOT baked in.
  *
  * Note: the NuGet search API does not return unlisted packages, so anything
  * unlisted (currently Tharga.Logging) is invisible here by design.
@@ -29,6 +30,22 @@ const EXCLUDE = new Set(["Tharga.Neurolito.Client"]);
 
 const SEARCH = "https://azuresearch-usnc.nuget.org/query?q=Tharga&take=200&prerelease=true&semVerLevel=2.0.0";
 
+/* Some packages still carry an old repository URL in their manifest. Map those
+ * onto the repo that actually holds the code now, so the swimlanes line up with
+ * the component list. Any alias that fires is reported — the real fix is to
+ * update <RepositoryUrl> in the offending csproj. */
+const REPO_ALIAS = { "tharga-console": "Console" };
+
+function repoOf(xml, id) {
+	const url = (xml.match(/<repository[^>]*url="([^"]+)"/) || [])[1] || "";
+	if (!url) return { repo: "(unknown)", note: `${id}: no <repository> url in manifest` };
+	const last = url.replace(/\.git$/, "").split("/").filter(Boolean).pop() || "(unknown)";
+	const alias = REPO_ALIAS[last.toLowerCase()];
+	if (alias) return { repo: alias, note: `${id}: manifest points at ${url} — mapped to ${alias}` };
+	if (!/github\.com\/Tharga\//i.test(url)) return { repo: last, note: `${id}: repository url outside Tharga org — ${url}` };
+	return { repo: last, note: null };
+}
+
 async function main() {
 	const res = await fetch(SEARCH);
 	if (!res.ok) throw new Error(`search failed: ${res.status}`);
@@ -43,6 +60,7 @@ async function main() {
 
 	const known = new Set(found.map((p) => p.id));
 	const pkgs = {};
+	const notes = [];
 
 	for (const p of found) {
 		const low = p.id.toLowerCase();
@@ -56,8 +74,11 @@ async function main() {
 		const internal = [...ids].filter((d) => known.has(d)).sort();
 		const external = [...ids].filter((d) => !d.toLowerCase().startsWith("tharga"));
 
-		pkgs[p.id] = { x: external.length, dep: internal };
-		console.log(`${p.id}@${p.version} — ${internal.length} internal, ${external.length} external`);
+		const { repo, note } = repoOf(xml, p.id);
+		if (note) notes.push(note);
+
+		pkgs[p.id] = { r: repo, x: external.length, dep: internal };
+		console.log(`${p.id}@${p.version} — ${repo}, ${internal.length} internal, ${external.length} external`);
 	}
 
 	const body = Object.keys(pkgs)
@@ -79,7 +100,9 @@ async function main() {
 	writeFileSync(PAGE, html);
 
 	const edges = Object.values(pkgs).reduce((s, p) => s + p.dep.length, 0);
-	console.log(`\nwrote ${found.length} packages, ${edges} internal links to dependencies.html (${today})`);
+	const repos = new Set(Object.values(pkgs).map((p) => p.r));
+	console.log(`\nwrote ${found.length} packages, ${edges} internal links, ${repos.size} repos to dependencies.html (${today})`);
+	if (notes.length) console.log("\nmanifest issues:\n  " + notes.join("\n  "));
 }
 
 main().catch((err) => {
