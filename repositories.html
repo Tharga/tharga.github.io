@@ -85,7 +85,7 @@
 
 		/* table */
 		.thg-repos .thgr-tablewrap{overflow-x:auto;border:1px solid #ececec;border-radius:10px;}
-		.thg-repos table{border-collapse:collapse;width:100%;font-size:13px;min-width:860px;}
+		.thg-repos table{border-collapse:collapse;width:100%;font-size:13px;min-width:920px;}
 		.thg-repos th,.thg-repos td{text-align:left;padding:10px 14px;border-bottom:1px solid #f0f0f0;vertical-align:top;}
 		.thg-repos th{background:#fafafa;color:#707070;font-size:12px;font-weight:600;white-space:nowrap;}
 		.thg-repos tbody tr:hover{background:#faf6f0;}
@@ -209,30 +209,63 @@
 
 			/* ---------- live GitHub metadata ---------- */
 
-			var LIVE = {}, liveState = "loading";
+			var LIVE = {}, COUNTS = {}, liveState = "loading", countState = "loading";
+
+			/* Do NOT use open_issues_count from the repos endpoint: it counts pull
+			   requests as issues, so a repo whose only open item is a dependabot PR
+			   reports "1 open issue". The search endpoint can tell the two apart, and
+			   one request each covers the whole org. */
+			function search(kind){
+				var q = encodeURIComponent("org:" + ORG + " is:open is:" + kind);
+				return fetch("https://api.github.com/search/issues?per_page=100&q=" + q)
+					.then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+					.then(function(d){
+						var items = d.items || [], by = {};
+						items.forEach(function(it){
+							var name = String(it.repository_url || "").split("/").pop();
+							if(name) by[name] = (by[name] || 0) + 1;
+						});
+						/* one page holds 100; beyond that the per-repo tallies would be
+						   short, and a wrong number is worse than none */
+						if((d.total_count || 0) > items.length) throw new Error("truncated");
+						return by;
+					});
+			}
 
 			function loadLive(){
-				fetch("https://api.github.com/orgs/" + ORG + "/repos?per_page=100")
+				var meta = fetch("https://api.github.com/orgs/" + ORG + "/repos?per_page=100")
 					.then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
 					.then(function(list){
 						(list || []).forEach(function(r){
 							if(REPOS[r.name]) LIVE[r.name] = {
 								desc: r.description || "",
 								pushed: r.pushed_at || "",
-								issues: r.open_issues_count,
 								lang: r.language || "",
 								url: r.html_url
 							};
 						});
 						liveState = Object.keys(LIVE).length ? "ok" : "fail";
 					})
-					.catch(function(){ liveState = "fail"; })
-					.then(function(){
-						document.getElementById("livenote").textContent = liveState === "ok"
-							? "Descriptions, last-push dates and issue counts are live from GitHub."
-							: "Could not reach the GitHub API — repository details are unavailable (its unauthenticated limit is 60 requests an hour).";
-						render();
-					});
+					.catch(function(){ liveState = "fail"; });
+
+				var counts = Promise.all([search("issue"), search("pr")])
+					.then(function(both){
+						NAMES.forEach(function(n){
+							COUNTS[n] = { issues: both[0][n] || 0, prs: both[1][n] || 0 };
+						});
+						countState = "ok";
+					})
+					.catch(function(){ countState = "fail"; COUNTS = {}; });
+
+				Promise.all([meta, counts]).then(function(){
+					document.getElementById("livenote").textContent =
+						liveState !== "ok"
+							? "Could not reach the GitHub API — repository details are unavailable (its unauthenticated limit is 60 requests an hour)."
+							: countState === "ok"
+								? "Descriptions, last-push dates and open issue/pull-request counts are live from GitHub."
+								: "Descriptions and last-push dates are live from GitHub; issue counts unavailable (search allows 10 requests a minute).";
+					render();
+				});
 			}
 
 			/* ---------- helpers ---------- */
@@ -291,11 +324,12 @@
 						(members.length > 1 ? " &middot; independent of each other, any order" : "") + "</span></div>" +
 						'<p class="thgr-stepd">' + note + "</p><div class=\"thgr-cards\">" +
 						members.map(function(n){
-							var L = LIVE[n], r = REPOS[n];
+							var L = LIVE[n], r = REPOS[n], C = COUNTS[n];
 							var facts = [];
 							if(L && L.lang) facts.push(esc(L.lang));
 							if(L && L.pushed) facts.push("pushed " + esc(ago(L.pushed)));
-							if(L && typeof L.issues === "number") facts.push(L.issues + " open issue" + (L.issues === 1 ? "" : "s"));
+							if(C && C.issues) facts.push(C.issues + " open issue" + (C.issues === 1 ? "" : "s"));
+							if(C && C.prs) facts.push(C.prs + " open PR" + (C.prs === 1 ? "" : "s"));
 							return '<div class="thgr-card"><div class="thgr-cardh">' +
 								'<span class="thgr-dot" style="--c:' + color(n) + '"></span>' +
 								'<a class="thgr-name" href="' + url(n) + '" target="_blank" rel="noopener">' + highlight(n, q) + "</a>" +
@@ -421,11 +455,13 @@
 						x.classList.toggle("self", x.dataset.id === n);
 					});
 					edges.forEach(function(e){ e.classList.toggle("on", e.dataset.a === n || e.dataset.b === n); });
-					var L = LIVE[n];
+					var L = LIVE[n], C = COUNTS[n];
 					readout.innerHTML = "<b>" + esc(n) + "</b> — step " + (STEP[n] + 1) +
 						" · needs " + deps(n).length + " · unblocks " + USED[n].length +
 						(REPOS[n].pkgs.length ? " · " + REPOS[n].pkgs.length + " package" + (REPOS[n].pkgs.length === 1 ? "" : "s") : " · publishes nothing") +
-						(L && L.pushed ? " · pushed " + esc(ago(L.pushed)) : "");
+						(L && L.pushed ? " · pushed " + esc(ago(L.pushed)) : "") +
+						(C && C.issues ? " · " + C.issues + " open issue" + (C.issues === 1 ? "" : "s") : "") +
+						(C && C.prs ? " · " + C.prs + " open PR" + (C.prs === 1 ? "" : "s") : "");
 				}
 
 				nodes.forEach(function(x){
@@ -445,9 +481,9 @@
 				var none = '<span class="thgr-none">&mdash;</span>';
 				return '<div class="thgr-tablewrap"><table><thead><tr>' +
 					"<th>Repository</th><th>Step</th><th>Needs</th><th>Unblocks</th><th>Packages</th>" +
-					"<th>Language</th><th>Last push</th><th>Issues</th></tr></thead><tbody>" +
+					"<th>Language</th><th>Last push</th><th>Issues</th><th>PRs</th></tr></thead><tbody>" +
 					rows.map(function(n){
-						var L = LIVE[n];
+						var L = LIVE[n], C = COUNTS[n];
 						return "<tr>" +
 							'<td><span class="thgr-dot" style="--c:' + color(n) + ';display:inline-block;margin-right:7px"></span>' +
 							'<a class="thgr-name" href="' + url(n) + '" target="_blank" rel="noopener">' + highlight(n, q) + "</a></td>" +
@@ -457,7 +493,8 @@
 							'<td class="thgr-num">' + (REPOS[n].pkgs.length || none) + "</td>" +
 							"<td>" + (L && L.lang ? esc(L.lang) : none) + "</td>" +
 							"<td>" + (L && L.pushed ? esc(L.pushed.slice(0, 10)) : none) + "</td>" +
-							'<td class="thgr-num">' + (L && typeof L.issues === "number" ? L.issues : none) + "</td>" +
+							'<td class="thgr-num">' + (C ? C.issues : none) + "</td>" +
+							'<td class="thgr-num">' + (C ? C.prs : none) + "</td>" +
 						"</tr>";
 					}).join("") + "</tbody></table></div>";
 			}
