@@ -20,6 +20,9 @@
 		.thg-components .thgc-eyebrow{color:#a16b2e;font-family:"Exo 2",sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:14px;margin:0 0 10px;}
 		.thg-components .thgc-title{font-family:"Exo 2",sans-serif;font-size:36px;color:#161617;margin:0 0 10px;}
 		.thg-components .thgc-sub{color:#707070;font-size:16px;margin:0;}
+		.thg-components .thgc-more{margin:14px 0 0;}
+		.thg-components .thgc-more a{color:#a16b2e;font-weight:600;font-size:14px;text-decoration:none;}
+		.thg-components .thgc-more a:hover{text-decoration:underline;}
 		.thg-components .thgc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;}
 		.thg-components .thg-ccard{position:relative;display:flex;flex-direction:column;background:#fafafa;border:1px solid #ececec;border-radius:10px;padding:26px 24px;text-align:center;transition:box-shadow .2s ease,transform .2s ease;}
 		.thg-components .thg-ccard:hover{box-shadow:0 12px 30px rgba(0,0,0,.07);transform:translateY(-3px);}
@@ -46,7 +49,7 @@
 <body>
 	<section id="components" class="thg-components">
 		<div class="thgc-inner">
-			<div class="thgc-head"><h2 class="thgc-title">Components</h2><p class="thgc-sub">Open-source .NET libraries, available on GitHub and NuGet.org.</p></div>
+			<div class="thgc-head"><h2 class="thgc-title">Components</h2><p class="thgc-sub">Open-source .NET libraries, available on GitHub and NuGet.org.</p><p class="thgc-more"><a href="dependencies.html">See how the packages depend on each other &#8594;</a></p></div>
 			<div class="thgc-grid">
 				<div class="thg-ccard"><img src="assets/component-blazor.png" alt="Blazor" width="64" height="64"><h3>Blazor</h3><p>Generic, reusable Blazor UI components for Server and WebAssembly, built on Radzen.Blazor.</p><div class="thg-clinks"><a class="thg-clink" href="https://github.com/Tharga/Blazor" target="_blank" rel="noopener">GitHub</a><a class="thg-clink" href="https://www.nuget.org/packages/Tharga.Blazor" target="_blank" rel="noopener">NuGet</a><a class="thg-clink" href="https://blazor.tharga.net/" target="_blank" rel="noopener">Docs</a></div></div>
 				<div class="thg-ccard"><img src="assets/component-cache.png" alt="Cache" width="64" height="64"><h3>Cache</h3><p>A flexible .NET caching library with multiple strategies, pluggable persistence backends, eviction policies, and a Blazor monitoring UI.</p><div class="thg-clinks"><a class="thg-clink" href="https://github.com/Tharga/Cache" target="_blank" rel="noopener">GitHub</a><details class="thg-pkg"><summary>NuGet (6)</summary><ul class="thg-pkglist"><li><a href="https://www.nuget.org/packages/Tharga.Cache" target="_blank" rel="noopener">Tharga.Cache</a></li><li><a href="https://www.nuget.org/packages/Tharga.Cache.Blazor" target="_blank" rel="noopener">Tharga.Cache.Blazor</a></li><li><a href="https://www.nuget.org/packages/Tharga.Cache.File" target="_blank" rel="noopener">Tharga.Cache.File</a></li><li><a href="https://www.nuget.org/packages/Tharga.Cache.Mcp" target="_blank" rel="noopener">Tharga.Cache.Mcp</a></li><li><a href="https://www.nuget.org/packages/Tharga.Cache.MongoDB" target="_blank" rel="noopener">Tharga.Cache.MongoDB</a></li><li><a href="https://www.nuget.org/packages/Tharga.Cache.Redis" target="_blank" rel="noopener">Tharga.Cache.Redis</a></li></ul></details><a class="thg-clink" href="https://cache.tharga.net/" target="_blank" rel="noopener">Docs</a></div></div>

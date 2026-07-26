@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Package dependencies - Thargelion</title>
+	<meta name="description" content="How the Tharga NuGet packages depend on each other, shown as a dependency map and tree.">
+	<link rel="icon" href="assets/cropped-thargelion-symbol-32x32.png" sizes="32x32">
+	<link rel="apple-touch-icon" href="assets/cropped-thargelion-symbol-180x180.png">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link rel="preconnect" href="https://azuresearch-usnc.nuget.org">
+	<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700&display=swap" rel="stylesheet">
+	<style>
+		*{box-sizing:border-box;}
+		html,body{margin:0;padding:0;}
+		body{font-family:"Exo 2",sans-serif;font-size:16px;color:#161617;background:#fff;-webkit-font-smoothing:antialiased;}
+		.thg-deps{padding:70px 0;background:#fff;}
+		.thg-deps .thgd-inner{max-width:1180px;margin:0 auto;padding:0 15px;}
+		.thg-deps .thgd-head{text-align:center;margin-bottom:34px;}
+		.thg-deps .thgd-title{font-family:"Exo 2",sans-serif;font-size:36px;color:#161617;margin:0 0 10px;}
+		.thg-deps .thgd-sub{color:#707070;font-size:16px;margin:0 auto;max-width:660px;line-height:1.6;}
+		.thg-deps .thgd-back{display:inline-block;margin-bottom:18px;color:#a16b2e;font-weight:600;font-size:14px;text-decoration:none;}
+		.thg-deps .thgd-back:hover{text-decoration:underline;}
+
+		/* stat tiles */
+		.thg-deps .thgd-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:34px;}
+		.thg-deps .thgd-stat{background:#fafafa;border:1px solid #ececec;border-radius:10px;padding:18px 20px;text-align:center;}
+		.thg-deps .thgd-statv{font-size:30px;font-weight:700;line-height:1.1;color:#161617;}
+		.thg-deps .thgd-statl{font-size:13px;color:#707070;margin-top:4px;}
+
+		/* controls */
+		.thg-deps .thgd-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;margin-bottom:16px;}
+		.thg-deps .thgd-seg{display:inline-flex;border:1px solid #e2e2e2;border-radius:8px;overflow:hidden;background:#fff;}
+		.thg-deps .thgd-seg button{font:600 13px/1 "Exo 2",sans-serif;color:#707070;background:#fff;border:0;padding:9px 14px;cursor:pointer;transition:background .15s ease,color .15s ease;}
+		.thg-deps .thgd-seg button+button{border-left:1px solid #e2e2e2;}
+		.thg-deps .thgd-seg button:hover{background:#faf6f0;color:#a16b2e;}
+		.thg-deps .thgd-seg button[aria-pressed="true"]{background:#a16b2e;color:#fff;}
+		.thg-deps .thgd-search{font:400 13px/1 "Exo 2",sans-serif;color:#161617;border:1px solid #e2e2e2;border-radius:8px;padding:9px 12px;min-width:210px;}
+		.thg-deps .thgd-search:focus{outline:2px solid #a16b2e;outline-offset:-1px;}
+		.thg-deps .thgd-btn{font:600 13px/1 "Exo 2",sans-serif;color:#707070;background:#fff;border:1px solid #e2e2e2;border-radius:8px;padding:9px 14px;cursor:pointer;}
+		.thg-deps .thgd-btn:hover{background:#faf6f0;color:#a16b2e;}
+
+		/* legend + notes */
+		.thg-deps .thgd-legend{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-items:center;margin-bottom:10px;font-size:12px;color:#707070;}
+		.thg-deps .thgd-lg{display:inline-flex;align-items:center;gap:6px;}
+		.thg-deps .thgd-hint{text-align:center;color:#909090;font-size:12px;margin:0 0 24px;}
+
+		/* shared node bits */
+		.thg-deps .thgd-dot{width:10px;height:10px;border-radius:50%;background:var(--c);flex:0 0 auto;}
+		.thg-deps .thgd-lvl{font-size:11px;font-weight:600;color:#707070;background:#f2f2f2;border-radius:4px;padding:2px 6px;flex:0 0 auto;}
+		.thg-deps .thgd-name{color:#161617;font-weight:600;font-size:14px;text-decoration:none;}
+		.thg-deps .thgd-name:hover{color:#a16b2e;text-decoration:underline;}
+		.thg-deps .thgd-meta{color:#909090;font-size:12px;}
+		.thg-deps mark{background:#f6e6cf;color:#161617;padding:0 1px;border-radius:2px;}
+
+		/* map */
+		.thg-deps .thgd-mapwrap{background:#fafafa;border:1px solid #ececec;border-radius:10px;padding:6px;overflow-x:auto;}
+		.thg-deps .thgd-map{display:block;margin:0 auto;}
+		.thg-deps .thgd-colh{font-size:11px;font-weight:600;fill:#909090;text-transform:uppercase;letter-spacing:.06em;}
+		.thg-deps .thgd-edge{fill:none;stroke:#c8c8c8;stroke-width:1.2;transition:stroke .12s ease,stroke-width .12s ease,opacity .12s ease;}
+		.thg-deps .thgd-nbox{fill:#fff;stroke:#e2e2e2;stroke-width:1;transition:stroke .12s ease,opacity .12s ease;}
+		.thg-deps .thgd-nlabel{font-size:11px;font-weight:600;fill:#161617;pointer-events:none;}
+		.thg-deps .thgd-node{cursor:pointer;}
+		.thg-deps .thgd-node:hover .thgd-nbox{stroke:#a16b2e;}
+		/* focus state: dim everything not touching the hovered node */
+		.thg-deps .thgd-map.thgd-focus .thgd-edge{opacity:.1;}
+		.thg-deps .thgd-map.thgd-focus .thgd-edge.on{opacity:1;stroke:#a16b2e;stroke-width:2;}
+		.thg-deps .thgd-map.thgd-focus .thgd-node{opacity:.25;}
+		.thg-deps .thgd-map.thgd-focus .thgd-node.on{opacity:1;}
+		.thg-deps .thgd-map.thgd-focus .thgd-node.self .thgd-nbox{stroke:#a16b2e;stroke-width:2;}
+		.thg-deps .thgd-readout{text-align:center;font-size:12px;color:#707070;min-height:19px;margin:12px 0 0;}
+		.thg-deps .thgd-readout b{color:#161617;}
+
+		/* tree */
+		.thg-deps .thgd-tree,.thg-deps .thgd-tree ul{list-style:none;margin:0;padding:0;}
+		.thg-deps .thgd-tree ul{margin-left:11px;padding-left:18px;border-left:1px solid #ececec;}
+		.thg-deps .thgd-tree li{margin:0;}
+		.thg-deps .thgd-row{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:7px;}
+		.thg-deps .thgd-row:hover{background:#faf6f0;}
+		.thg-deps .thgd-tree summary{list-style:none;cursor:pointer;}
+		.thg-deps .thgd-tree summary::-webkit-details-marker{display:none;}
+		.thg-deps .thgd-tw{width:12px;flex:0 0 auto;color:#b8b8b8;font-size:10px;transition:transform .15s ease;}
+		.thg-deps .thgd-tree details[open]>summary .thgd-tw{transform:rotate(90deg);}
+		.thg-deps .thgd-leafpad{width:12px;flex:0 0 auto;}
+		.thg-deps .thgd-roots{background:#fafafa;border:1px solid #ececec;border-radius:10px;padding:16px 18px;}
+
+		/* layers */
+		.thg-deps .thgd-layer{background:#fafafa;border:1px solid #ececec;border-radius:10px;padding:18px 20px;margin-bottom:16px;}
+		.thg-deps .thgd-layerh{display:flex;align-items:center;gap:9px;margin-bottom:4px;}
+		.thg-deps .thgd-layerh h2{font-size:16px;margin:0;color:#161617;}
+		.thg-deps .thgd-layerd{color:#909090;font-size:12px;margin:0 0 14px;}
+		.thg-deps .thgd-chips{display:flex;flex-wrap:wrap;gap:8px;}
+		.thg-deps .thgd-chip{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid #ececec;border-radius:7px;padding:7px 11px;}
+
+		/* table */
+		.thg-deps .thgd-tablewrap{overflow-x:auto;border:1px solid #ececec;border-radius:10px;}
+		.thg-deps table{border-collapse:collapse;width:100%;font-size:13px;min-width:800px;}
+		.thg-deps th,.thg-deps td{text-align:left;padding:10px 14px;border-bottom:1px solid #f0f0f0;vertical-align:top;}
+		.thg-deps th{background:#fafafa;color:#707070;font-size:12px;font-weight:600;white-space:nowrap;}
+		.thg-deps tbody tr:hover{background:#faf6f0;}
+		.thg-deps td.thgd-num{text-align:right;color:#707070;white-space:nowrap;}
+		.thg-deps .thgd-none{color:#c0c0c0;}
+
+		.thg-deps .thgd-foot{color:#909090;font-size:12px;text-align:center;margin:30px 0 0;line-height:1.7;}
+		.thg-deps .thgd-foot a{color:#a16b2e;text-decoration:none;}
+		.thg-deps .thgd-foot a:hover{text-decoration:underline;}
+		.thg-deps .thgd-empty{text-align:center;color:#909090;font-size:14px;padding:30px 0;}
+		@media(max-width:760px){.thg-deps .thgd-stats{grid-template-columns:repeat(2,1fr);}.thg-deps .thgd-title{font-size:28px;}}
+	</style>
+</head>
+<body>
+	<section id="dependencies" class="thg-deps">
+		<div class="thgd-inner">
+			<div class="thgd-head">
+				<a class="thgd-back" href="index.html">&#8592; Components</a>
+				<h1 class="thgd-title">Package dependencies</h1>
+				<p class="thgd-sub">How the Tharga NuGet packages depend on one another. Only dependencies between Tharga packages are drawn &mdash; third-party dependencies are counted, not listed.</p>
+			</div>
+
+			<div class="thgd-stats">
+				<div class="thgd-stat"><div class="thgd-statv" id="s-pkgs">&mdash;</div><div class="thgd-statl">Packages</div></div>
+				<div class="thgd-stat"><div class="thgd-statv" id="s-links">&mdash;</div><div class="thgd-statl">Internal links</div></div>
+				<div class="thgd-stat"><div class="thgd-statv" id="s-layers">&mdash;</div><div class="thgd-statl">Layers deep</div></div>
+				<div class="thgd-stat"><div class="thgd-statv" id="s-cycles">&mdash;</div><div class="thgd-statl">Circular refs</div></div>
+			</div>
+
+			<div class="thgd-controls">
+				<div class="thgd-seg" role="group" aria-label="View">
+					<button type="button" data-view="map" aria-pressed="true">Map</button>
+					<button type="button" data-view="tree" aria-pressed="false">Tree</button>
+					<button type="button" data-view="layers" aria-pressed="false">Layers</button>
+					<button type="button" data-view="table" aria-pressed="false">Table</button>
+				</div>
+				<div class="thgd-seg" id="dirseg" role="group" aria-label="Direction">
+					<button type="button" data-dir="dep" aria-pressed="true">Depends on</button>
+					<button type="button" data-dir="used" aria-pressed="false">Used by</button>
+				</div>
+				<input class="thgd-search" id="q" type="search" placeholder="Filter packages&hellip;" aria-label="Filter packages">
+				<button class="thgd-btn" type="button" id="expand">Expand all</button>
+				<button class="thgd-btn" type="button" id="collapse">Collapse all</button>
+			</div>
+
+			<div class="thgd-legend" id="legend"></div>
+			<p class="thgd-hint" id="hint"></p>
+
+			<div id="view"></div>
+			<p class="thgd-readout" id="readout"></p>
+
+			<p class="thgd-foot">
+				Dependency structure read from the NuGet manifests on 2026-07-26 &mdash; regenerate with <code>tools/build-dependencies.mjs</code>.<br>
+				<span id="livenote">Loading current versions from nuget.org&hellip;</span><br>
+				Source on <a href="https://github.com/Tharga" target="_blank" rel="noopener">GitHub</a>, packages on <a href="https://www.nuget.org/profiles/Thargelion" target="_blank" rel="noopener">NuGet.org</a>.
+			</p>
+		</div>
+
+		<script>
+		(function(){
+			"use strict";
+
+			/* Ordinal ramp, light -> dark, one hue. Validated: monotone lightness,
+			   adjacent dL >= 0.06, light end 2.24:1 on white, hue spread 14deg. */
+			var RAMP = ["#cba86e","#b8894a","#a16b2e","#7a5122","#533617"];
+			var LAYER_NOTE = [
+				"No Tharga dependencies — build these first.",
+				"Depends only on layer 0.",
+				"Depends on layers 0–1.",
+				"Depends on layers 0–2.",
+				"Depends on layers 0–3 — build these last."
+			];
+
+			/* Structure only. Versions and download counts are fetched live from
+			   nuget.org below, so they are never stale in this file.
+			   x = number of non-Tharga dependencies. */
+			/* PKGS:start — generated by tools/build-dependencies.mjs, do not edit by hand */
+			var PKGS = {
+				"Tharga.Blazor":{"x":3,"dep":["Tharga.Toolkit"]},
+				"Tharga.Cache":{"x":2,"dep":[]},
+				"Tharga.Cache.Blazor":{"x":0,"dep":["Tharga.Blazor","Tharga.Cache"]},
+				"Tharga.Cache.File":{"x":0,"dep":["Tharga.Cache"]},
+				"Tharga.Cache.Mcp":{"x":0,"dep":["Tharga.Cache","Tharga.Mcp"]},
+				"Tharga.Cache.MongoDB":{"x":0,"dep":["Tharga.Cache","Tharga.MongoDB"]},
+				"Tharga.Cache.Redis":{"x":2,"dep":["Tharga.Cache"]},
+				"Tharga.Communication":{"x":2,"dep":["Tharga.Runtime"]},
+				"Tharga.Communication.Mcp":{"x":0,"dep":["Tharga.Communication","Tharga.Mcp"]},
+				"Tharga.Console":{"x":1,"dep":["Tharga.Console.Standard","Tharga.Runtime"]},
+				"Tharga.Console.Speech":{"x":1,"dep":["Tharga.Console"]},
+				"Tharga.Console.Standard":{"x":0,"dep":[]},
+				"Tharga.Crawler":{"x":3,"dep":[]},
+				"Tharga.Fortnox":{"x":2,"dep":[]},
+				"Tharga.License":{"x":1,"dep":[]},
+				"Tharga.Mcp":{"x":2,"dep":[]},
+				"Tharga.MongoDB":{"x":10,"dep":["Tharga.Runtime"]},
+				"Tharga.MongoDB.Blazor":{"x":0,"dep":["Tharga.Blazor","Tharga.MongoDB"]},
+				"Tharga.MongoDB.Mcp":{"x":0,"dep":["Tharga.Mcp","Tharga.MongoDB"]},
+				"Tharga.MongoDB.Monitor.Client":{"x":0,"dep":["Tharga.Communication","Tharga.MongoDB"]},
+				"Tharga.MongoDB.Monitor.Server":{"x":0,"dep":["Tharga.Communication","Tharga.MongoDB.Monitor.Client"]},
+				"Tharga.Platform.Mcp":{"x":0,"dep":["Tharga.Mcp","Tharga.Team.Service"]},
+				"Tharga.Reporter":{"x":3,"dep":[]},
+				"Tharga.Runtime":{"x":2,"dep":[]},
+				"Tharga.Team":{"x":3,"dep":["Tharga.Toolkit"]},
+				"Tharga.Team.Blazor":{"x":2,"dep":["Tharga.Blazor","Tharga.Team","Tharga.Team.Service"]},
+				"Tharga.Team.Entra":{"x":1,"dep":["Tharga.Team"]},
+				"Tharga.Team.Images":{"x":2,"dep":["Tharga.Team"]},
+				"Tharga.Team.MongoDB":{"x":0,"dep":["Tharga.MongoDB","Tharga.Team"]},
+				"Tharga.Team.Service":{"x":2,"dep":["Tharga.MongoDB","Tharga.Team"]},
+				"Tharga.Test.Toolkit":{"x":0,"dep":[]},
+				"Tharga.Toolkit":{"x":3,"dep":["Tharga.Toolkit.Standard"]},
+				"Tharga.Toolkit.Standard":{"x":0,"dep":[]},
+				"Tharga.Wpf":{"x":6,"dep":["Tharga.License","Tharga.Runtime"]}
+			};
+			/* PKGS:end */
+
+			var IDS = Object.keys(PKGS).sort();
+
+			/* reverse edges */
+			var USED = {};
+			IDS.forEach(function(id){ USED[id] = []; });
+			IDS.forEach(function(id){
+				PKGS[id].dep.forEach(function(d){ if(USED[d]) USED[d].push(id); });
+			});
+			IDS.forEach(function(id){ USED[id].sort(); });
+
+			/* depth = longest path to a package with no Tharga dependencies */
+			var LEVEL = {}, VISITING = {}, CYCLES = 0;
+			function level(id){
+				if(LEVEL[id] !== undefined) return LEVEL[id];
+				if(VISITING[id]){ CYCLES++; return 0; }
+				VISITING[id] = true;
+				var m = 0;
+				PKGS[id].dep.forEach(function(d){ if(PKGS[d]) m = Math.max(m, level(d) + 1); });
+				VISITING[id] = false;
+				return (LEVEL[id] = m);
+			}
+			IDS.forEach(level);
+
+			var MAXLVL = IDS.reduce(function(m,id){ return Math.max(m, LEVEL[id]); }, 0);
+			var EDGES = IDS.reduce(function(s,id){ return s + PKGS[id].dep.length; }, 0);
+
+			document.getElementById("s-pkgs").textContent   = IDS.length;
+			document.getElementById("s-links").textContent  = EDGES;
+			document.getElementById("s-layers").textContent = MAXLVL + 1;
+			document.getElementById("s-cycles").textContent = CYCLES;
+
+			/* ---------- live data from nuget.org (version + downloads) ---------- */
+
+			var LIVE = {}, liveState = "loading";
+
+			function ver(id){ return LIVE[id] ? LIVE[id].v : ""; }
+			function dls(id){ return LIVE[id] ? LIVE[id].dl : null; }
+
+			function loadLive(){
+				var url = "https://azuresearch-usnc.nuget.org/query?q=Tharga&take=200&prerelease=true&semVerLevel=2.0.0";
+				fetch(url)
+					.then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+					.then(function(d){
+						(d.data || []).forEach(function(p){
+							if(PKGS[p.id]) LIVE[p.id] = { v: p.version, dl: p.totalDownloads };
+						});
+						liveState = Object.keys(LIVE).length ? "ok" : "fail";
+					})
+					.catch(function(){ liveState = "fail"; })
+					.then(function(){
+						document.getElementById("livenote").textContent = liveState === "ok"
+							? "Versions and download counts are live from nuget.org."
+							: "Could not reach nuget.org — versions and download counts are unavailable.";
+						render();
+					});
+			}
+
+			/* ---------- helpers ---------- */
+
+			function esc(s){
+				return String(s).replace(/[&<>"]/g, function(c){
+					return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c];
+				});
+			}
+			function color(id){ return RAMP[Math.min(LEVEL[id], RAMP.length - 1)]; }
+			function nuget(id){ return "https://www.nuget.org/packages/" + id; }
+			function shortName(id){ return id.replace(/^Tharga\./, ""); }
+
+			function highlight(id, q){
+				var safe = esc(id);
+				if(!q) return safe;
+				var i = id.toLowerCase().indexOf(q);
+				if(i < 0) return safe;
+				return esc(id.slice(0, i)) + "<mark>" + esc(id.slice(i, i + q.length)) + "</mark>" + esc(id.slice(i + q.length));
+			}
+
+			/* Identity is never colour alone: every node carries its layer as text too. */
+			function label(id, q, kidCount, dir){
+				var bits = [], v = ver(id);
+				if(v) bits.push(v);
+				if(kidCount) bits.push(kidCount + (dir === "dep" ? " dep" : " user") + (kidCount === 1 ? "" : "s"));
+				if(PKGS[id].x) bits.push(PKGS[id].x + " external");
+				return '<span class="thgd-dot" style="--c:' + color(id) + '"></span>' +
+					'<a class="thgd-name" href="' + nuget(id) + '" target="_blank" rel="noopener">' + highlight(id, q) + "</a>" +
+					'<span class="thgd-lvl">L' + LEVEL[id] + "</span>" +
+					(bits.length ? '<span class="thgd-meta">' + bits.join(" · ") + "</span>" : "");
+			}
+
+			function kidsOf(id, dir){ return dir === "dep" ? PKGS[id].dep : USED[id]; }
+
+			/* does this subtree contain a match? memoised per (dir, query) render pass */
+			function hit(id, dir, q, memo){
+				if(!q) return true;
+				if(memo[id] !== undefined) return memo[id];
+				memo[id] = id.toLowerCase().indexOf(q) >= 0;
+				if(!memo[id]){
+					memo[id] = kidsOf(id, dir).some(function(k){ return hit(k, dir, q, memo); });
+				}
+				return memo[id];
+			}
+
+			var state = { view:"map", dir:"dep", q:"", open:false };
+
+			/* ---------- map: layered node-link diagram, each package drawn once ---------- */
+
+			var NODE_W = 162, NODE_H = 30, ROW = 40, COL_GAP = 76, PAD = 6, PAD_TOP = 44;
+			var COL_W = NODE_W + COL_GAP;
+
+			/* Columns left -> right. Edges always run left -> right, so the layer axis
+			   flips with direction: "depends on" puts the most-composed packages first,
+			   "used by" starts from the foundations. */
+			function columns(dir){
+				var cols = [];
+				for(var l = 0; l <= MAXLVL; l++){
+					cols.push({ level:l, ids: IDS.filter(function(id){ return LEVEL[id] === l; }) });
+				}
+				return dir === "dep" ? cols.reverse() : cols;
+			}
+
+			/* Barycentre sweeps: order each column by the mean normalised position of its
+			   neighbours, which pulls connected nodes level with each other and cuts
+			   crossings. Positions are normalised 0..1 so columns of different heights
+			   compare fairly. */
+			function order(cols){
+				var pos = {};
+				cols.forEach(function(c){
+					c.ids.forEach(function(id, i){ pos[id] = c.ids.length > 1 ? i / (c.ids.length - 1) : 0.5; });
+				});
+				for(var sweep = 0; sweep < 12; sweep++){
+					var forward = sweep % 2 === 0;
+					var list = forward ? cols : cols.slice().reverse();
+					list.forEach(function(c){
+						var bary = {};
+						c.ids.forEach(function(id){
+							var nb = PKGS[id].dep.concat(USED[id]);
+							bary[id] = nb.length
+								? nb.reduce(function(s, n){ return s + pos[n]; }, 0) / nb.length
+								: pos[id];
+						});
+						c.ids.sort(function(a, b){ return (bary[a] - bary[b]) || a.localeCompare(b); });
+						c.ids.forEach(function(id, i){ pos[id] = c.ids.length > 1 ? i / (c.ids.length - 1) : 0.5; });
+					});
+				}
+				return cols;
+			}
+
+			function viewMap(){
+				var dir = state.dir, q = state.q;
+				var cols = order(columns(dir));
+				var rows = cols.reduce(function(m, c){ return Math.max(m, c.ids.length); }, 0);
+				var W = cols.length * COL_W - COL_GAP + PAD * 2;
+				var H = PAD_TOP + rows * ROW + PAD;
+
+				/* geometry, centred per column */
+				var at = {};
+				cols.forEach(function(c, ci){
+					var top = PAD_TOP + (rows - c.ids.length) * ROW / 2;
+					c.ids.forEach(function(id, i){
+						at[id] = { x: PAD + ci * COL_W, y: top + i * ROW };
+					});
+				});
+
+				var dim = function(id){ return q && id.toLowerCase().indexOf(q) < 0; };
+
+				/* edges: always source(left) -> target(right) */
+				var paths = "";
+				IDS.forEach(function(id){
+					PKGS[id].dep.forEach(function(d){
+						var from = dir === "dep" ? id : d;
+						var to   = dir === "dep" ? d  : id;
+						var a = at[from], b = at[to];
+						if(!a || !b) return;
+						var x1 = a.x + NODE_W, y1 = a.y + NODE_H / 2;
+						var x2 = b.x,          y2 = b.y + NODE_H / 2;
+						var dx = Math.max(28, (x2 - x1) * 0.45);
+						paths += '<path class="thgd-edge" data-a="' + esc(from) + '" data-b="' + esc(to) + '"' +
+							(q && dim(from) && dim(to) ? ' opacity=".12"' : "") +
+							' marker-end="url(#thgd-arrow)" d="M' + x1 + "," + y1 +
+							" C" + (x1 + dx) + "," + y1 + " " + (x2 - dx) + "," + y2 + " " + (x2 - 9) + "," + y2 + '"/>';
+					});
+				});
+
+				/* column headers */
+				var heads = cols.map(function(c, ci){
+					return '<text class="thgd-colh" x="' + (PAD + ci * COL_W) + '" y="20">Layer ' + c.level + "</text>" +
+						'<text class="thgd-colh" x="' + (PAD + ci * COL_W) + '" y="34" style="text-transform:none;letter-spacing:0;font-weight:400">' +
+						c.ids.length + " pkg" + (c.ids.length === 1 ? "" : "s") + "</text>";
+				}).join("");
+
+				/* nodes */
+				var nodes = IDS.map(function(id){
+					var p = at[id]; if(!p) return "";
+					var v = ver(id);
+					var used = USED[id].length, deps = PKGS[id].dep.length;
+					var tip = id + " — layer " + LEVEL[id] + (v ? ", v" + v : "") +
+						" · depends on " + deps + " · used by " + used +
+						(PKGS[id].x ? " · " + PKGS[id].x + " external" : "");
+					return '<g class="thgd-node" data-id="' + esc(id) + '"' + (q && dim(id) ? ' opacity=".2"' : "") + '>' +
+						"<title>" + esc(tip) + "</title>" +
+						'<rect class="thgd-nbox" x="' + p.x + '" y="' + p.y + '" width="' + NODE_W + '" height="' + NODE_H + '" rx="7"/>' +
+						'<circle cx="' + (p.x + 13) + '" cy="' + (p.y + NODE_H / 2) + '" r="4.5" fill="' + color(id) + '"/>' +
+						'<text class="thgd-nlabel" x="' + (p.x + 24) + '" y="' + (p.y + NODE_H / 2 + 4) + '">' + esc(shortName(id)) + "</text>" +
+						"</g>";
+				}).join("");
+
+				return '<div class="thgd-mapwrap"><svg class="thgd-map" id="map" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Dependency map of the Tharga NuGet packages. The Table view lists the same relationships as text.">' +
+					'<defs><marker id="thgd-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">' +
+					'<path d="M0,1 L9,5 L0,9 z" fill="#b0b0b0"/></marker></defs>' +
+					heads + paths + nodes + "</svg></div>";
+			}
+
+			/* hover: highlight the hovered package and everything it touches */
+			function wireMap(){
+				var svg = document.getElementById("map");
+				if(!svg) return;
+				var nodes = [].slice.call(svg.querySelectorAll(".thgd-node"));
+				var edges = [].slice.call(svg.querySelectorAll(".thgd-edge"));
+				var readout = document.getElementById("readout");
+
+				function focus(id){
+					if(!id){
+						svg.classList.remove("thgd-focus");
+						nodes.forEach(function(n){ n.classList.remove("on", "self"); });
+						edges.forEach(function(e){ e.classList.remove("on"); });
+						readout.innerHTML = "";
+						return;
+					}
+					var near = {};
+					near[id] = true;
+					PKGS[id].dep.forEach(function(d){ near[d] = true; });
+					USED[id].forEach(function(u){ near[u] = true; });
+					svg.classList.add("thgd-focus");
+					nodes.forEach(function(n){
+						n.classList.toggle("on", !!near[n.dataset.id]);
+						n.classList.toggle("self", n.dataset.id === id);
+					});
+					edges.forEach(function(e){
+						e.classList.toggle("on", e.dataset.a === id || e.dataset.b === id);
+					});
+					var v = ver(id), d = dls(id);
+					readout.innerHTML = "<b>" + esc(id) + "</b> — layer " + LEVEL[id] +
+						(v ? " · v" + esc(v) : "") +
+						" · depends on " + PKGS[id].dep.length + " · used by " + USED[id].length +
+						(PKGS[id].x ? " · " + PKGS[id].x + " external" : "") +
+						(d != null ? " · " + d.toLocaleString("en-US") + " downloads" : "");
+				}
+
+				nodes.forEach(function(n){
+					n.addEventListener("mouseenter", function(){ focus(n.dataset.id); });
+					n.addEventListener("click", function(){ window.open(nuget(n.dataset.id), "_blank", "noopener"); });
+				});
+				svg.addEventListener("mouseleave", function(){ focus(null); });
+			}
+
+			/* ---------- tree / layers / table ---------- */
+
+			function renderNode(id, dir, q, memo, depth){
+				if(depth > 12) return "";  /* guard; the graph is acyclic and 5 deep */
+				var kids = kidsOf(id, dir).filter(function(k){ return hit(k, dir, q, memo); });
+				if(!kids.length){
+					return '<li><div class="thgd-row"><span class="thgd-leafpad"></span>' + label(id, q, 0, dir) + "</div></li>";
+				}
+				var open = (state.open || !!q || depth === 0) ? " open" : "";
+				return "<li><details" + open + '><summary><div class="thgd-row"><span class="thgd-tw">&#9654;</span>' +
+					label(id, q, kids.length, dir) + "</div></summary><ul>" +
+					kids.map(function(k){ return renderNode(k, dir, q, memo, depth + 1); }).join("") +
+					"</ul></details></li>";
+			}
+
+			function viewTree(){
+				var dir = state.dir, q = state.q, memo = {};
+				var roots = IDS.filter(function(id){
+					return (dir === "dep" ? USED[id].length : PKGS[id].dep.length) === 0;
+				}).filter(function(id){ return hit(id, dir, q, memo); });
+
+				if(!roots.length) return '<p class="thgd-empty">No packages match &ldquo;' + esc(state.q) + "&rdquo;.</p>";
+				return '<div class="thgd-roots"><ul class="thgd-tree">' +
+					roots.map(function(id){ return renderNode(id, dir, q, memo, 0); }).join("") + "</ul></div>";
+			}
+
+			function viewLayers(){
+				var q = state.q, html = "";
+				for(var l = 0; l <= MAXLVL; l++){
+					var members = IDS.filter(function(id){
+						return LEVEL[id] === l && (!q || id.toLowerCase().indexOf(q) >= 0);
+					});
+					if(!members.length) continue;
+					html += '<div class="thgd-layer"><div class="thgd-layerh">' +
+						'<span class="thgd-dot" style="--c:' + RAMP[Math.min(l, RAMP.length - 1)] + '"></span>' +
+						"<h2>Layer " + l + "</h2><span class=\"thgd-meta\">" + members.length + " package" + (members.length === 1 ? "" : "s") + "</span></div>" +
+						'<p class="thgd-layerd">' + LAYER_NOTE[Math.min(l, LAYER_NOTE.length - 1)] + "</p>" +
+						'<div class="thgd-chips">' +
+						members.map(function(id){
+							var v = ver(id);
+							return '<span class="thgd-chip"><span class="thgd-dot" style="--c:' + color(id) + '"></span>' +
+								'<a class="thgd-name" href="' + nuget(id) + '" target="_blank" rel="noopener">' + highlight(id, q) + "</a>" +
+								(v ? '<span class="thgd-meta">' + esc(v) + "</span>" : "") + "</span>";
+						}).join("") + "</div></div>";
+				}
+				return html || '<p class="thgd-empty">No packages match &ldquo;' + esc(state.q) + "&rdquo;.</p>";
+			}
+
+			function viewTable(){
+				var q = state.q;
+				var rows = IDS.filter(function(id){ return !q || id.toLowerCase().indexOf(q) >= 0; });
+				if(!rows.length) return '<p class="thgd-empty">No packages match &ldquo;' + esc(state.q) + "&rdquo;.</p>";
+				var list = function(a){
+					return a.length
+						? a.map(function(x){ return '<a class="thgd-name" style="font-weight:400" href="' + nuget(x) + '" target="_blank" rel="noopener">' + esc(x) + "</a>"; }).join(", ")
+						: '<span class="thgd-none">&mdash;</span>';
+				};
+				var none = '<span class="thgd-none">&mdash;</span>';
+				return '<div class="thgd-tablewrap"><table><thead><tr>' +
+					"<th>Package</th><th>Version</th><th>Layer</th><th>Depends on</th><th>Used by</th>" +
+					"<th>External</th><th>Downloads</th></tr></thead><tbody>" +
+					rows.map(function(id){
+						var v = ver(id), d = dls(id);
+						return "<tr>" +
+							'<td><span class="thgd-dot" style="--c:' + color(id) + ';display:inline-block;margin-right:7px"></span>' +
+							'<a class="thgd-name" href="' + nuget(id) + '" target="_blank" rel="noopener">' + highlight(id, q) + "</a></td>" +
+							"<td>" + (v ? esc(v) : none) + "</td>" +
+							"<td>L" + LEVEL[id] + "</td>" +
+							"<td>" + list(PKGS[id].dep) + "</td>" +
+							"<td>" + list(USED[id]) + "</td>" +
+							'<td class="thgd-num">' + (PKGS[id].x || 0) + "</td>" +
+							'<td class="thgd-num">' + (d != null ? d.toLocaleString("en-US") : none) + "</td>" +
+						"</tr>";
+					}).join("") + "</tbody></table></div>";
+			}
+
+			/* ---------- chrome ---------- */
+
+			var legendBase = RAMP.slice(0, MAXLVL + 1).map(function(c, i){
+				return '<span class="thgd-lg"><span class="thgd-dot" style="--c:' + c + '"></span>Layer ' + i + "</span>";
+			}).join("");
+
+			var HINTS = {
+				mapdep:  "Every package once, with the shared Tharga. prefix dropped. An arrow points from a package to something it depends on. Hover to isolate a package and its direct links; click to open it on NuGet.",
+				mapused: "Every package once, with the shared Tharga. prefix dropped. An arrow points from a package to something that depends on it. Hover to isolate a package and its direct links; click to open it on NuGet.",
+				dep:     "Each package expands into the Tharga packages it needs. Top level = packages nothing else depends on.",
+				used:    "Each package expands into the Tharga packages that consume it. Top level = packages with no Tharga dependencies.",
+				layers:  "Build order. Everything in a layer can be built once the layers above it are done.",
+				table:   "Every package with its direct dependencies in both directions."
+			};
+
+			function render(){
+				var v = state.view;
+				document.getElementById("view").innerHTML =
+					v === "map" ? viewMap() : v === "tree" ? viewTree() : v === "layers" ? viewLayers() : viewTable();
+				if(v === "map") wireMap(); else document.getElementById("readout").innerHTML = "";
+
+				document.getElementById("hint").textContent =
+					v === "map"  ? HINTS["map" + state.dir] :
+					v === "tree" ? HINTS[state.dir] : HINTS[v];
+
+				document.getElementById("legend").innerHTML = legendBase +
+					'<span class="thgd-lg">' + (v === "map" ? "left to right = " + (state.dir === "dep" ? "consumers to foundations" : "foundations to consumers") : "darker = further from the foundation") + "</span>";
+
+				document.getElementById("dirseg").style.display = (v === "tree" || v === "map") ? "" : "none";
+				var treeOnly = v === "tree";
+				document.getElementById("expand").style.display = treeOnly ? "" : "none";
+				document.getElementById("collapse").style.display = treeOnly ? "" : "none";
+			}
+
+			Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function(b){
+				b.addEventListener("click", function(){
+					state.view = b.getAttribute("data-view");
+					Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function(o){
+						o.setAttribute("aria-pressed", String(o === b));
+					});
+					render();
+				});
+			});
+
+			Array.prototype.forEach.call(document.querySelectorAll("[data-dir]"), function(b){
+				b.addEventListener("click", function(){
+					state.dir = b.getAttribute("data-dir");
+					Array.prototype.forEach.call(document.querySelectorAll("[data-dir]"), function(o){
+						o.setAttribute("aria-pressed", String(o === b));
+					});
+					render();
+				});
+			});
+
+			var timer;
+			document.getElementById("q").addEventListener("input", function(e){
+				var v = e.target.value.trim().toLowerCase();
+				clearTimeout(timer);
+				timer = setTimeout(function(){ state.q = v; render(); }, 120);
+			});
+
+			document.getElementById("expand").addEventListener("click", function(){
+				state.open = true; render(); state.open = false;
+			});
+			document.getElementById("collapse").addEventListener("click", function(){
+				Array.prototype.forEach.call(document.querySelectorAll(".thgd-tree details"), function(d){
+					d.removeAttribute("open");
+				});
+			});
+
+			render();
+			loadLive();
+		})();
+		</script>
+	</section>
+</body>
+</html>
