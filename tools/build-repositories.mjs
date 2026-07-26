@@ -31,6 +31,12 @@ const raw = (p) => execFileSync("gh", ["api", p, "-H", "Accept: application/vnd.
 
 const REPO_ALIAS = { "tharga-console": "Console" };
 
+/* Public repos left off the page by choice — they are not part of the chain
+ * that gets maintained in dependency order. Starter is deliberately NOT here:
+ * it ships no package either, but it consumes five repos, so it belongs in the
+ * update order. */
+const EXCLUDE = new Set(["Depend", "Logging", "tharga.github.io"]);
+
 /* Which repo builds which package, taken from the published manifests rather
  * than guessed from the csproj files — a repo's sample projects are named like
  * packages but are not published, and Tharga.Test.Toolkit lives in a path that
@@ -61,13 +67,15 @@ const isTestProject = (xml, path) =>
 	/\.Tests?\.csproj$/i.test(path);
 
 async function main() {
-	const repos = gh(`orgs/${ORG}/repos?per_page=100`)
-		.filter((r) => !r.private && !r.archived && !r.fork)
+	const all = gh(`orgs/${ORG}/repos?per_page=100`).filter((r) => !r.private && !r.archived && !r.fork);
+	const repos = all
+		.filter((r) => !EXCLUDE.has(r.name))
 		.map((r) => ({ name: r.name, branch: r.default_branch }))
 		.sort((a, b) => a.name.localeCompare(b.name));
 
 	if (!repos.length) throw new Error("no public repos returned — refusing to write an empty page");
-	console.log(`scanning ${repos.length} public repos\n`);
+	const skipped = all.filter((r) => EXCLUDE.has(r.name)).map((r) => r.name);
+	console.log(`scanning ${repos.length} public repos` + (skipped.length ? ` (excluded: ${skipped.sort().join(", ")})` : "") + "\n");
 
 	const names = new Set(repos.map((r) => r.name));
 	const owns = await packageOwners();
