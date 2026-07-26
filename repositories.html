@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Repository dependencies - Thargelion</title>
+	<meta name="description" content="Which Tharga repositories depend on which, and the order to update them in.">
+	<link rel="icon" href="assets/cropped-thargelion-symbol-32x32.png" sizes="32x32">
+	<link rel="apple-touch-icon" href="assets/cropped-thargelion-symbol-180x180.png">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link rel="preconnect" href="https://api.github.com">
+	<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700&display=swap" rel="stylesheet">
+	<style>
+		*{box-sizing:border-box;}
+		html,body{margin:0;padding:0;}
+		body{font-family:"Exo 2",sans-serif;font-size:16px;color:#161617;background:#fff;-webkit-font-smoothing:antialiased;}
+		.thg-repos{padding:70px 0;background:#fff;}
+		.thg-repos .thgr-inner{max-width:1180px;margin:0 auto;padding:0 15px;}
+		.thg-repos .thgr-head{text-align:center;margin-bottom:34px;}
+		.thg-repos .thgr-title{font-family:"Exo 2",sans-serif;font-size:36px;color:#161617;margin:0 0 10px;}
+		.thg-repos .thgr-sub{color:#707070;font-size:16px;margin:0 auto;max-width:680px;line-height:1.6;}
+		.thg-repos .thgr-back{display:inline-block;margin-bottom:18px;color:#a16b2e;font-weight:600;font-size:14px;text-decoration:none;}
+		.thg-repos .thgr-back:hover{text-decoration:underline;}
+
+		.thg-repos .thgr-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:34px;}
+		.thg-repos .thgr-stat{background:#fafafa;border:1px solid #ececec;border-radius:10px;padding:18px 20px;text-align:center;}
+		.thg-repos .thgr-statv{font-size:30px;font-weight:700;line-height:1.1;color:#161617;}
+		.thg-repos .thgr-statl{font-size:13px;color:#707070;margin-top:4px;}
+
+		.thg-repos .thgr-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;margin-bottom:16px;}
+		.thg-repos .thgr-seg{display:inline-flex;border:1px solid #e2e2e2;border-radius:8px;overflow:hidden;background:#fff;}
+		.thg-repos .thgr-seg button{font:600 13px/1 "Exo 2",sans-serif;color:#707070;background:#fff;border:0;padding:9px 14px;cursor:pointer;transition:background .15s ease,color .15s ease;}
+		.thg-repos .thgr-seg button+button{border-left:1px solid #e2e2e2;}
+		.thg-repos .thgr-seg button:hover{background:#faf6f0;color:#a16b2e;}
+		.thg-repos .thgr-seg button[aria-pressed="true"]{background:#a16b2e;color:#fff;}
+		.thg-repos .thgr-search{font:400 13px/1 "Exo 2",sans-serif;color:#161617;border:1px solid #e2e2e2;border-radius:8px;padding:9px 12px;min-width:210px;}
+		.thg-repos .thgr-search:focus{outline:2px solid #a16b2e;outline-offset:-1px;}
+		.thg-repos label.thgr-check{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:#707070;cursor:pointer;border:1px solid #e2e2e2;border-radius:8px;padding:8px 12px;}
+		.thg-repos label.thgr-check input{accent-color:#a16b2e;margin:0;}
+
+		.thg-repos .thgr-legend{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-items:center;margin-bottom:10px;font-size:12px;color:#707070;}
+		.thg-repos .thgr-lg{display:inline-flex;align-items:center;gap:6px;}
+		.thg-repos .thgr-hint{text-align:center;color:#909090;font-size:12px;margin:0 0 24px;}
+		.thg-repos .thgr-dot{width:10px;height:10px;border-radius:50%;background:var(--c);flex:0 0 auto;}
+		.thg-repos mark{background:#f6e6cf;color:#161617;padding:0 1px;border-radius:2px;}
+
+		/* order view */
+		.thg-repos .thgr-step{background:#fafafa;border:1px solid #ececec;border-radius:10px;padding:18px 20px;margin-bottom:16px;}
+		.thg-repos .thgr-steph{display:flex;align-items:center;gap:9px;margin-bottom:3px;flex-wrap:wrap;}
+		.thg-repos .thgr-steph h2{font-size:16px;margin:0;color:#161617;}
+		.thg-repos .thgr-stepmeta{color:#909090;font-size:12px;}
+		.thg-repos .thgr-stepd{color:#909090;font-size:12px;margin:0 0 14px;}
+		.thg-repos .thgr-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;}
+		.thg-repos .thgr-card{background:#fff;border:1px solid #ececec;border-radius:8px;padding:12px 14px;}
+		.thg-repos .thgr-cardh{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+		.thg-repos .thgr-name{color:#161617;font-weight:700;font-size:14px;text-decoration:none;}
+		.thg-repos .thgr-name:hover{color:#a16b2e;text-decoration:underline;}
+		.thg-repos .thgr-desc{color:#8a8a8a;font-size:12px;line-height:1.5;margin:0 0 8px;}
+		.thg-repos .thgr-rel{font-size:11.5px;color:#707070;margin:2px 0 0;line-height:1.55;}
+		.thg-repos .thgr-rel b{color:#161617;font-weight:600;}
+		.thg-repos .thgr-rel a{color:#707070;text-decoration:none;border-bottom:1px dotted #cfcfcf;}
+		.thg-repos .thgr-rel a:hover{color:#a16b2e;}
+		.thg-repos .thgr-none{color:#c0c0c0;}
+		.thg-repos .thgr-facts{display:flex;flex-wrap:wrap;gap:10px;margin-top:9px;padding-top:9px;border-top:1px solid #f2f2f2;font-size:11px;color:#a0a0a0;}
+		.thg-repos .thgr-nopkg{font-size:10.5px;font-weight:600;color:#8a8a8a;background:#f2f2f2;border-radius:4px;padding:2px 6px;}
+
+		/* map */
+		.thg-repos .thgr-mapwrap{background:#fafafa;border:1px solid #ececec;border-radius:10px;padding:6px;overflow-x:auto;}
+		.thg-repos .thgr-map{display:block;margin:0 auto;}
+		.thg-repos .thgr-colh{font-size:11px;font-weight:600;fill:#909090;text-transform:uppercase;letter-spacing:.06em;}
+		.thg-repos .thgr-edge{fill:none;stroke:#c8c8c8;stroke-width:1.2;transition:stroke .12s ease,stroke-width .12s ease,opacity .12s ease;}
+		.thg-repos .thgr-edge.test{stroke:#dedede;stroke-dasharray:3 3;}
+		.thg-repos .thgr-nbox{fill:#fff;stroke:#e2e2e2;stroke-width:1;transition:stroke .12s ease,opacity .12s ease;}
+		.thg-repos .thgr-nlabel{font-size:11.5px;font-weight:600;fill:#161617;pointer-events:none;}
+		.thg-repos .thgr-node{cursor:pointer;}
+		.thg-repos .thgr-node:hover .thgr-nbox{stroke:#a16b2e;}
+		.thg-repos .thgr-map.thgr-focus .thgr-edge{opacity:.1;}
+		.thg-repos .thgr-map.thgr-focus .thgr-edge.on{opacity:1;stroke:#a16b2e;stroke-width:2;}
+		.thg-repos .thgr-map.thgr-focus .thgr-node{opacity:.25;}
+		.thg-repos .thgr-map.thgr-focus .thgr-node.on{opacity:1;}
+		.thg-repos .thgr-map.thgr-focus .thgr-node.self .thgr-nbox{stroke:#a16b2e;stroke-width:2;}
+		.thg-repos .thgr-readout{text-align:center;font-size:12px;color:#707070;min-height:19px;margin:12px 0 0;}
+		.thg-repos .thgr-readout b{color:#161617;}
+
+		/* table */
+		.thg-repos .thgr-tablewrap{overflow-x:auto;border:1px solid #ececec;border-radius:10px;}
+		.thg-repos table{border-collapse:collapse;width:100%;font-size:13px;min-width:860px;}
+		.thg-repos th,.thg-repos td{text-align:left;padding:10px 14px;border-bottom:1px solid #f0f0f0;vertical-align:top;}
+		.thg-repos th{background:#fafafa;color:#707070;font-size:12px;font-weight:600;white-space:nowrap;}
+		.thg-repos tbody tr:hover{background:#faf6f0;}
+		.thg-repos td.thgr-num{text-align:right;color:#707070;white-space:nowrap;}
+
+		.thg-repos .thgr-foot{color:#909090;font-size:12px;text-align:center;margin:30px 0 0;line-height:1.7;}
+		.thg-repos .thgr-foot a{color:#a16b2e;text-decoration:none;}
+		.thg-repos .thgr-foot a:hover{text-decoration:underline;}
+		.thg-repos .thgr-empty{text-align:center;color:#909090;font-size:14px;padding:30px 0;}
+		@media(max-width:760px){.thg-repos .thgr-stats{grid-template-columns:repeat(2,1fr);}.thg-repos .thgr-title{font-size:28px;}}
+	</style>
+</head>
+<body>
+	<section id="repositories" class="thg-repos">
+		<div class="thgr-inner">
+			<div class="thgr-head">
+				<a class="thgr-back" href="index.html">&#8592; Components</a>
+				<h1 class="thgr-title">Repository dependencies</h1>
+				<p class="thgr-sub">Which repository depends on which, and the order to update them in. Read from the <code>csproj</code> files in each repo, so it includes sample and test projects and repos that publish no package &mdash; things the <a href="dependencies.html">package graph</a> cannot see.</p>
+			</div>
+
+			<div class="thgr-stats">
+				<div class="thgr-stat"><div class="thgr-statv" id="s-repos">&mdash;</div><div class="thgr-statl">Repositories</div></div>
+				<div class="thgr-stat"><div class="thgr-statv" id="s-deps">&mdash;</div><div class="thgr-statl">Dependencies</div></div>
+				<div class="thgr-stat"><div class="thgr-statv" id="s-steps">&mdash;</div><div class="thgr-statl">Update steps</div></div>
+				<div class="thgr-stat"><div class="thgr-statv" id="s-cycles">&mdash;</div><div class="thgr-statl">Circular refs</div></div>
+			</div>
+
+			<div class="thgr-controls">
+				<div class="thgr-seg" role="group" aria-label="View">
+					<button type="button" data-view="order" aria-pressed="true">Update order</button>
+					<button type="button" data-view="map" aria-pressed="false">Map</button>
+					<button type="button" data-view="table" aria-pressed="false">Table</button>
+				</div>
+				<div class="thgr-seg" id="dirseg" role="group" aria-label="Direction">
+					<button type="button" data-dir="dep" aria-pressed="true">Depends on</button>
+					<button type="button" data-dir="used" aria-pressed="false">Used by</button>
+				</div>
+				<label class="thgr-check"><input type="checkbox" id="tests"> Count test projects</label>
+				<input class="thgr-search" id="q" type="search" placeholder="Filter repositories&hellip;" aria-label="Filter repositories">
+			</div>
+
+			<div class="thgr-legend" id="legend"></div>
+			<p class="thgr-hint" id="hint"></p>
+
+			<div id="view"></div>
+			<p class="thgr-readout" id="readout"></p>
+
+			<p class="thgr-foot">
+				Dependencies read from the csproj files on 2026-07-26 &mdash; regenerate with <code>tools/build-repositories.mjs</code>.<br>
+				<span id="livenote">Loading repository details from GitHub&hellip;</span><br>
+				<a href="dependencies.html">Package dependencies</a> &middot; <a href="https://github.com/Tharga" target="_blank" rel="noopener">GitHub</a>
+			</p>
+		</div>
+
+		<script>
+		(function(){
+			"use strict";
+
+			var ORG = "Tharga";
+			/* same validated ordinal ramp as the package page */
+			var RAMP = ["#cba86e","#b8894a","#a16b2e","#7a5122","#533617"];
+
+			/* REPOS:start — generated by tools/build-repositories.mjs, do not edit by hand */
+			var REPOS = {
+				"Blazor":{"dep":["Toolkit"],"test":[],"pkgs":["Tharga.Blazor"]},
+				"Cache":{"dep":["Blazor","Console","Mcp","MongoDB"],"test":[],"pkgs":["Tharga.Cache","Tharga.Cache.Blazor","Tharga.Cache.File","Tharga.Cache.Mcp","Tharga.Cache.MongoDB","Tharga.Cache.Redis"]},
+				"Communication":{"dep":["Mcp","Runtime"],"test":["Test"],"pkgs":["Tharga.Communication","Tharga.Communication.Mcp"]},
+				"Console":{"dep":["Runtime"],"test":[],"pkgs":["Tharga.Console","Tharga.Console.Speech","Tharga.Console.Standard"]},
+				"Crawler":{"dep":["Console"],"test":["Test"],"pkgs":["Tharga.Crawler"]},
+				"Depend":{"dep":[],"test":["Test"],"pkgs":[]},
+				"Fortnox":{"dep":[],"test":[],"pkgs":["Tharga.Fortnox"]},
+				"Logging":{"dep":["Toolkit"],"test":[],"pkgs":[]},
+				"Mcp":{"dep":[],"test":[],"pkgs":["Tharga.Mcp"]},
+				"MongoDB":{"dep":["Blazor","Communication","Console","Mcp","Runtime"],"test":["Test"],"pkgs":["Tharga.MongoDB","Tharga.MongoDB.Blazor","Tharga.MongoDB.Mcp","Tharga.MongoDB.Monitor.Client","Tharga.MongoDB.Monitor.Server"]},
+				"Platform":{"dep":["Blazor","Mcp","MongoDB","Toolkit"],"test":[],"pkgs":["Tharga.Platform.Mcp","Tharga.Team","Tharga.Team.Blazor","Tharga.Team.Entra","Tharga.Team.Images","Tharga.Team.MongoDB","Tharga.Team.Service"]},
+				"Reporter":{"dep":[],"test":["Test"],"pkgs":["Tharga.Reporter"]},
+				"Runtime":{"dep":[],"test":[],"pkgs":["Tharga.Runtime"]},
+				"Starter":{"dep":["Blazor","Console","MongoDB","Platform","Toolkit"],"test":[],"pkgs":[]},
+				"Test":{"dep":[],"test":[],"pkgs":["Tharga.Test.Toolkit"]},
+				"Toolkit":{"dep":[],"test":["Test"],"pkgs":["Tharga.Toolkit","Tharga.Toolkit.Standard"]},
+				"Wpf":{"dep":["Runtime"],"test":[],"pkgs":["Tharga.License","Tharga.Wpf"]},
+				"tharga.github.io":{"dep":[],"test":[],"pkgs":[]}
+			};
+			/* REPOS:end */
+
+			var NAMES = Object.keys(REPOS).sort();
+
+			/* ---------- graph ---------- */
+
+			var withTests = false;
+
+			function deps(n){ return withTests ? REPOS[n].dep.concat(REPOS[n].test) : REPOS[n].dep; }
+
+			var USED = {}, STEP = {}, CYCLES = 0, MAXSTEP = 0, EDGES = 0;
+
+			function rebuild(){
+				USED = {}; STEP = {}; CYCLES = 0;
+				NAMES.forEach(function(n){ USED[n] = []; });
+				NAMES.forEach(function(n){
+					deps(n).forEach(function(d){ if(USED[d]) USED[d].push(n); });
+				});
+				NAMES.forEach(function(n){ USED[n].sort(); });
+
+				var visiting = {};
+				function step(n){
+					if(STEP[n] !== undefined) return STEP[n];
+					if(visiting[n]){ CYCLES++; return 0; }
+					visiting[n] = true;
+					var m = 0;
+					deps(n).forEach(function(d){ if(REPOS[d]) m = Math.max(m, step(d) + 1); });
+					visiting[n] = false;
+					return (STEP[n] = m);
+				}
+				NAMES.forEach(step);
+				MAXSTEP = NAMES.reduce(function(m, n){ return Math.max(m, STEP[n]); }, 0);
+				EDGES = NAMES.reduce(function(s, n){ return s + deps(n).length; }, 0);
+
+				document.getElementById("s-repos").textContent  = NAMES.length;
+				document.getElementById("s-deps").textContent   = EDGES;
+				document.getElementById("s-steps").textContent  = MAXSTEP + 1;
+				document.getElementById("s-cycles").textContent = CYCLES;
+			}
+
+			/* ---------- live GitHub metadata ---------- */
+
+			var LIVE = {}, liveState = "loading";
+
+			function loadLive(){
+				fetch("https://api.github.com/orgs/" + ORG + "/repos?per_page=100")
+					.then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+					.then(function(list){
+						(list || []).forEach(function(r){
+							if(REPOS[r.name]) LIVE[r.name] = {
+								desc: r.description || "",
+								pushed: r.pushed_at || "",
+								issues: r.open_issues_count,
+								lang: r.language || "",
+								url: r.html_url
+							};
+						});
+						liveState = Object.keys(LIVE).length ? "ok" : "fail";
+					})
+					.catch(function(){ liveState = "fail"; })
+					.then(function(){
+						document.getElementById("livenote").textContent = liveState === "ok"
+							? "Descriptions, last-push dates and issue counts are live from GitHub."
+							: "Could not reach the GitHub API — repository details are unavailable (its unauthenticated limit is 60 requests an hour).";
+						render();
+					});
+			}
+
+			/* ---------- helpers ---------- */
+
+			function esc(s){
+				return String(s).replace(/[&<>"]/g, function(c){
+					return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c];
+				});
+			}
+			function color(n){ return RAMP[Math.min(STEP[n], RAMP.length - 1)]; }
+			function url(n){ return (LIVE[n] && LIVE[n].url) || "https://github.com/" + ORG + "/" + n; }
+
+			function ago(iso){
+				if(!iso) return "";
+				var days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+				if(days <= 0) return "today";
+				if(days === 1) return "yesterday";
+				if(days < 30) return days + " days ago";
+				if(days < 365) return Math.round(days / 30) + " months ago";
+				return Math.round(days / 365) + " years ago";
+			}
+
+			function highlight(n, q){
+				var safe = esc(n);
+				if(!q) return safe;
+				var i = n.toLowerCase().indexOf(q);
+				if(i < 0) return safe;
+				return esc(n.slice(0, i)) + "<mark>" + esc(n.slice(i, i + q.length)) + "</mark>" + esc(n.slice(i + q.length));
+			}
+
+			function linkList(arr){
+				if(!arr.length) return '<span class="thgr-none">nothing</span>';
+				return arr.map(function(n){
+					return '<a href="' + url(n) + '" target="_blank" rel="noopener">' + esc(n) + "</a>";
+				}).join(", ");
+			}
+
+			var state = { view:"order", dir:"dep", q:"" };
+
+			/* ---------- update order ---------- */
+
+			function viewOrder(){
+				var q = state.q, html = "";
+				for(var s = 0; s <= MAXSTEP; s++){
+					var members = NAMES.filter(function(n){
+						return STEP[n] === s && (!q || n.toLowerCase().indexOf(q) >= 0);
+					});
+					if(!members.length) continue;
+					var note = s === 0
+						? "Nothing here depends on another Tharga repo — start with these."
+						: "Update these once step " + s + " is published.";
+					html += '<div class="thgr-step"><div class="thgr-steph">' +
+						'<span class="thgr-dot" style="--c:' + RAMP[Math.min(s, RAMP.length - 1)] + '"></span>' +
+						"<h2>Step " + (s + 1) + "</h2>" +
+						'<span class="thgr-stepmeta">' + members.length + " repositor" + (members.length === 1 ? "y" : "ies") +
+						(members.length > 1 ? " &middot; independent of each other, any order" : "") + "</span></div>" +
+						'<p class="thgr-stepd">' + note + "</p><div class=\"thgr-cards\">" +
+						members.map(function(n){
+							var L = LIVE[n], r = REPOS[n];
+							var facts = [];
+							if(L && L.lang) facts.push(esc(L.lang));
+							if(L && L.pushed) facts.push("pushed " + esc(ago(L.pushed)));
+							if(L && typeof L.issues === "number") facts.push(L.issues + " open issue" + (L.issues === 1 ? "" : "s"));
+							return '<div class="thgr-card"><div class="thgr-cardh">' +
+								'<span class="thgr-dot" style="--c:' + color(n) + '"></span>' +
+								'<a class="thgr-name" href="' + url(n) + '" target="_blank" rel="noopener">' + highlight(n, q) + "</a>" +
+								(r.pkgs.length ? "" : '<span class="thgr-nopkg">no package</span>') + "</div>" +
+								(L && L.desc ? '<p class="thgr-desc">' + esc(L.desc) + "</p>" : "") +
+								'<p class="thgr-rel"><b>Needs:</b> ' + linkList(deps(n)) + "</p>" +
+								'<p class="thgr-rel"><b>Unblocks:</b> ' + linkList(USED[n]) + "</p>" +
+								(facts.length ? '<div class="thgr-facts">' + facts.join(" &middot; ") + "</div>" : "") +
+								"</div>";
+						}).join("") + "</div></div>";
+				}
+				return html || '<p class="thgr-empty">No repositories match &ldquo;' + esc(state.q) + "&rdquo;.</p>";
+			}
+
+			/* ---------- map ---------- */
+
+			var NODE_W = 150, NODE_H = 30, ROW = 40, COL_GAP = 72, PAD = 6, PAD_TOP = 44;
+			var COL_W = NODE_W + COL_GAP;
+
+			function edgePath(x1, y1, x2, y2, span, nodeH){
+				var dx = Math.max(24, (x2 - x1) * 0.45);
+				var bow = (span > 1 && Math.abs(y1 - y2) < nodeH) ? -(10 + span * 5) : 0;
+				return "M" + x1 + "," + y1 +
+					" C" + (x1 + dx) + "," + (y1 + bow) + " " + (x2 - dx) + "," + (y2 + bow) + " " + (x2 - 9) + "," + y2;
+			}
+
+			function viewMap(){
+				var dir = state.dir, q = state.q;
+				var cols = [];
+				for(var s = 0; s <= MAXSTEP; s++){
+					cols.push({ step:s, ids: NAMES.filter(function(n){ return STEP[n] === s; }) });
+				}
+				if(dir === "dep") cols.reverse();
+
+				/* barycentre sweeps to pull linked repos level with each other */
+				var pos = {};
+				cols.forEach(function(c){
+					c.ids.forEach(function(n, i){ pos[n] = c.ids.length > 1 ? i / (c.ids.length - 1) : 0.5; });
+				});
+				for(var k = 0; k < 12; k++){
+					(k % 2 ? cols.slice().reverse() : cols).forEach(function(c){
+						var bary = {};
+						c.ids.forEach(function(n){
+							var nb = deps(n).concat(USED[n]);
+							bary[n] = nb.length ? nb.reduce(function(a, b){ return a + pos[b]; }, 0) / nb.length : pos[n];
+						});
+						c.ids.sort(function(a, b){ return (bary[a] - bary[b]) || a.localeCompare(b); });
+						c.ids.forEach(function(n, i){ pos[n] = c.ids.length > 1 ? i / (c.ids.length - 1) : 0.5; });
+					});
+				}
+
+				var rows = cols.reduce(function(m, c){ return Math.max(m, c.ids.length); }, 0);
+				var W = cols.length * COL_W - COL_GAP + PAD * 2;
+				var H = PAD_TOP + rows * ROW + PAD;
+
+				var at = {};
+				cols.forEach(function(c, ci){
+					var top = PAD_TOP + (rows - c.ids.length) * ROW / 2;
+					c.ids.forEach(function(n, i){ at[n] = { x: PAD + ci * COL_W, y: top + i * ROW, c: ci }; });
+				});
+
+				var dim = function(n){ return q && n.toLowerCase().indexOf(q) < 0; };
+
+				var paths = "";
+				NAMES.forEach(function(n){
+					deps(n).forEach(function(d){
+						var testOnly = REPOS[n].dep.indexOf(d) < 0;
+						var from = dir === "dep" ? n : d, to = dir === "dep" ? d : n;
+						var a = at[from], b = at[to];
+						if(!a || !b) return;
+						var x1 = a.x + NODE_W, y1 = a.y + NODE_H / 2, x2 = b.x, y2 = b.y + NODE_H / 2;
+						paths += '<path class="thgr-edge' + (testOnly ? " test" : "") + '" data-a="' + esc(from) + '" data-b="' + esc(to) + '"' +
+							(q && dim(from) && dim(to) ? ' opacity=".12"' : "") +
+							' marker-end="url(#thgr-arrow)" d="' + edgePath(x1, y1, x2, y2, Math.abs(b.c - a.c), NODE_H) + '"/>';
+					});
+				});
+
+				var heads = cols.map(function(c, ci){
+					return '<text class="thgr-colh" x="' + (PAD + ci * COL_W) + '" y="20">Step ' + (c.step + 1) + "</text>" +
+						'<text class="thgr-colh" x="' + (PAD + ci * COL_W) + '" y="34" style="text-transform:none;letter-spacing:0;font-weight:400">' +
+						c.ids.length + " repo" + (c.ids.length === 1 ? "" : "s") + "</text>";
+				}).join("");
+
+				var nodes = NAMES.map(function(n){
+					var p = at[n]; if(!p) return "";
+					var tip = n + " — step " + (STEP[n] + 1) + " · needs " + deps(n).length + " · unblocks " + USED[n].length +
+						(REPOS[n].pkgs.length ? " · " + REPOS[n].pkgs.length + " package" + (REPOS[n].pkgs.length === 1 ? "" : "s") : " · publishes nothing");
+					return '<g class="thgr-node" data-id="' + esc(n) + '"' + (q && dim(n) ? ' opacity=".2"' : "") + ">" +
+						"<title>" + esc(tip) + "</title>" +
+						'<rect class="thgr-nbox" x="' + p.x + '" y="' + p.y + '" width="' + NODE_W + '" height="' + NODE_H + '" rx="7"/>' +
+						'<circle cx="' + (p.x + 13) + '" cy="' + (p.y + NODE_H / 2) + '" r="4.5" fill="' + color(n) + '"/>' +
+						'<text class="thgr-nlabel" x="' + (p.x + 24) + '" y="' + (p.y + NODE_H / 2 + 4) + '">' + esc(n) + "</text>" +
+						"</g>";
+				}).join("");
+
+				return '<div class="thgr-mapwrap"><svg class="thgr-map" id="map" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Map of dependencies between the Tharga repositories. The Table view lists the same relationships as text.">' +
+					'<defs><marker id="thgr-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">' +
+					'<path d="M0,1 L9,5 L0,9 z" fill="#b0b0b0"/></marker></defs>' +
+					heads + paths + nodes + "</svg></div>";
+			}
+
+			function wireMap(){
+				var svg = document.getElementById("map");
+				if(!svg) return;
+				var nodes = [].slice.call(svg.querySelectorAll(".thgr-node"));
+				var edges = [].slice.call(svg.querySelectorAll(".thgr-edge"));
+				var readout = document.getElementById("readout");
+
+				function focus(n){
+					if(!n){
+						svg.classList.remove("thgr-focus");
+						nodes.forEach(function(x){ x.classList.remove("on", "self"); });
+						edges.forEach(function(e){ e.classList.remove("on"); });
+						readout.innerHTML = "";
+						return;
+					}
+					var near = {}; near[n] = true;
+					deps(n).forEach(function(d){ near[d] = true; });
+					USED[n].forEach(function(u){ near[u] = true; });
+					svg.classList.add("thgr-focus");
+					nodes.forEach(function(x){
+						x.classList.toggle("on", !!near[x.dataset.id]);
+						x.classList.toggle("self", x.dataset.id === n);
+					});
+					edges.forEach(function(e){ e.classList.toggle("on", e.dataset.a === n || e.dataset.b === n); });
+					var L = LIVE[n];
+					readout.innerHTML = "<b>" + esc(n) + "</b> — step " + (STEP[n] + 1) +
+						" · needs " + deps(n).length + " · unblocks " + USED[n].length +
+						(REPOS[n].pkgs.length ? " · " + REPOS[n].pkgs.length + " package" + (REPOS[n].pkgs.length === 1 ? "" : "s") : " · publishes nothing") +
+						(L && L.pushed ? " · pushed " + esc(ago(L.pushed)) : "");
+				}
+
+				nodes.forEach(function(x){
+					x.addEventListener("mouseenter", function(){ focus(x.dataset.id); });
+					x.addEventListener("click", function(){ window.open(url(x.dataset.id), "_blank", "noopener"); });
+				});
+				svg.addEventListener("mouseleave", function(){ focus(null); });
+			}
+
+			/* ---------- table ---------- */
+
+			function viewTable(){
+				var q = state.q;
+				var rows = NAMES.filter(function(n){ return !q || n.toLowerCase().indexOf(q) >= 0; })
+					.sort(function(a, b){ return STEP[a] - STEP[b] || a.localeCompare(b); });
+				if(!rows.length) return '<p class="thgr-empty">No repositories match &ldquo;' + esc(state.q) + "&rdquo;.</p>";
+				var none = '<span class="thgr-none">&mdash;</span>';
+				return '<div class="thgr-tablewrap"><table><thead><tr>' +
+					"<th>Repository</th><th>Step</th><th>Needs</th><th>Unblocks</th><th>Packages</th>" +
+					"<th>Language</th><th>Last push</th><th>Issues</th></tr></thead><tbody>" +
+					rows.map(function(n){
+						var L = LIVE[n];
+						return "<tr>" +
+							'<td><span class="thgr-dot" style="--c:' + color(n) + ';display:inline-block;margin-right:7px"></span>' +
+							'<a class="thgr-name" href="' + url(n) + '" target="_blank" rel="noopener">' + highlight(n, q) + "</a></td>" +
+							"<td>" + (STEP[n] + 1) + "</td>" +
+							"<td>" + (deps(n).length ? linkList(deps(n)) : none) + "</td>" +
+							"<td>" + (USED[n].length ? linkList(USED[n]) : none) + "</td>" +
+							'<td class="thgr-num">' + (REPOS[n].pkgs.length || none) + "</td>" +
+							"<td>" + (L && L.lang ? esc(L.lang) : none) + "</td>" +
+							"<td>" + (L && L.pushed ? esc(L.pushed.slice(0, 10)) : none) + "</td>" +
+							'<td class="thgr-num">' + (L && typeof L.issues === "number" ? L.issues : none) + "</td>" +
+						"</tr>";
+					}).join("") + "</tbody></table></div>";
+			}
+
+			/* ---------- chrome ---------- */
+
+			var HINTS = {
+				order:  "Publish a step before starting the next. Within a step the repositories do not depend on each other, so they can go in any order or in parallel.",
+				mapdep: "An arrow points from a repository to one it depends on. Hover to isolate a repository and its direct links; click to open it on GitHub.",
+				mapused:"An arrow points from a repository to one that depends on it. Hover to isolate a repository and its direct links; click to open it on GitHub.",
+				table:  "Every repository with its direct dependencies in both directions."
+			};
+
+			function render(){
+				var v = state.view;
+				document.getElementById("view").innerHTML =
+					v === "order" ? viewOrder() : v === "map" ? viewMap() : viewTable();
+				if(v === "map") wireMap(); else document.getElementById("readout").innerHTML = "";
+
+				document.getElementById("hint").textContent = v === "map" ? HINTS["map" + state.dir] : HINTS[v];
+
+				var swatches = RAMP.slice(0, MAXSTEP + 1).map(function(c, i){
+					return '<span class="thgr-lg"><span class="thgr-dot" style="--c:' + c + '"></span>Step ' + (i + 1) + "</span>";
+				}).join("");
+				document.getElementById("legend").innerHTML = swatches +
+					(v === "map"
+						? '<span class="thgr-lg">left to right = ' + (state.dir === "dep" ? "last to update, first to update" : "first to update, last to update") + "</span>" +
+						  (withTests ? '<span class="thgr-lg"><svg width="22" height="8" aria-hidden="true"><line x1="0" y1="4" x2="22" y2="4" stroke="#dedede" stroke-width="1.4" stroke-dasharray="3 3"/></svg>test projects only</span>' : "")
+						: '<span class="thgr-lg">darker = later in the order</span>');
+
+				document.getElementById("dirseg").style.display = v === "map" ? "" : "none";
+			}
+
+			Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function(b){
+				b.addEventListener("click", function(){
+					state.view = b.getAttribute("data-view");
+					Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function(o){
+						o.setAttribute("aria-pressed", String(o === b));
+					});
+					render();
+				});
+			});
+
+			Array.prototype.forEach.call(document.querySelectorAll("[data-dir]"), function(b){
+				b.addEventListener("click", function(){
+					state.dir = b.getAttribute("data-dir");
+					Array.prototype.forEach.call(document.querySelectorAll("[data-dir]"), function(o){
+						o.setAttribute("aria-pressed", String(o === b));
+					});
+					render();
+				});
+			});
+
+			document.getElementById("tests").addEventListener("change", function(e){
+				withTests = e.target.checked;
+				rebuild();
+				render();
+			});
+
+			var timer;
+			document.getElementById("q").addEventListener("input", function(e){
+				var v = e.target.value.trim().toLowerCase();
+				clearTimeout(timer);
+				timer = setTimeout(function(){ state.q = v; render(); }, 120);
+			});
+
+			rebuild();
+			render();
+			loadLive();
+		})();
+		</script>
+	</section>
+</body>
+</html>
